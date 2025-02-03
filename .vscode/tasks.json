@@ -1,0 +1,29 @@
+{
+    "version": "2.0.0",
+    "command": "",
+    "args": [],
+    "tasks": [
+        {
+            "label": "mkdir",
+            "type": "shell",
+            "command": "cmd",
+            "args": [
+                "/C",
+                "if not exist .\\Build mkdir .\\Build"
+            ]
+        },
+        {
+            "label": "build",
+            "type": "shell",
+            "command": "odin build ./src -debug -out:Build/PS-Odin.exe",
+            "group": "build"
+        },
+        {
+            "label": "Build",
+            "dependsOn": [
+                "mkdir",
+                "build"
+            ]
+        }
+    ]
+}
