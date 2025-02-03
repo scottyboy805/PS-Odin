@@ -33,6 +33,7 @@ bld/
 [Ll]ogs/
 [Rr]om/
 [Bb]uild/
+[Bb]ios/
 
 # Visual Studio 2015/2017 cache/options directory
 .vs/

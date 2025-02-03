@@ -8,6 +8,11 @@ DISPLAY_HEIGHT :: 480;
 
 main :: proc() 
 {
+    // Create PSX state
+    psx, success := psx_init();
+    defer psx_cleanup(psx);
+
+
     // Set raylib logging
     raylib.SetTraceLogLevel(raylib.TraceLogLevel.WARNING);
 

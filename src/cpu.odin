@@ -36,6 +36,13 @@ Mem :: struct
     value: u32,
 }
 
+cpu_init :: proc(cpu: ^CPUState)
+{
+    cpu.pc = 0xbfc0_0000;               // Bios Entry Point
+    cpu.pcPredictor = 0xbfc0_0004;      //next op for branch delay slot emulation
+    cpu.cop0Grp[15] = 0x2;              //PRID Processor ID
+}
+
 cpu_execute :: proc(ps: ^PSXState, cpu: ^CPUState) -> i32
 {
     // Fetch the instruction
@@ -182,6 +189,77 @@ cpu_execute_primary_opcode :: proc(ps: ^PSXState, cpu: ^CPUState, opcode: u32)
                 cpu.writeBack.register = instruction_get_rt(cpu.instr);
                 cpu.writeBack.value = result;
             }
+        // ADDIU
+        case 0x09:
+            {
+                rt := instruction_get_rt(cpu.instr);
+                rs := instruction_get_rs(cpu.instr);
+                imm_s := instruction_get_imm_s(cpu.instr);
+
+                cpu.writeBack.register = rt;
+                cpu.writeBack.value = cpu.gpr[rs] + imm_s;
+            }
+        // SLTI
+        case 0x0A:
+            {
+                rt := instruction_get_rt(cpu.instr);
+                rs := instruction_get_rs(cpu.instr);
+                imm_s := instruction_get_imm_s(cpu.instr);
+                condition := i32(cpu.gpr[rs]) < i32(imm_s);
+
+                cpu.writeBack.register = rt;
+                cpu.writeBack.value = condition == true ? 1 : 0;
+            }
+        // SLTIU
+        case 0x0B:
+            {
+                rt := instruction_get_rt(cpu.instr);
+                rs := instruction_get_rs(cpu.instr);
+                imm_s := instruction_get_imm_s(cpu.instr);
+                condition := cpu.gpr[rs] < imm_s;
+
+                cpu.writeBack.register = rt;
+                cpu.writeBack.value = condition == true ? 1 : 0;
+            }
+        // ANDI
+        case 0x0C:
+            {
+                rt := instruction_get_rt(cpu.instr);
+                rs := instruction_get_rs(cpu.instr);
+                imm := instruction_get_imm(cpu.instr);
+
+                cpu.writeBack.register = rt;
+                cpu.writeBack.value = cpu.gpr[rs] & imm;
+            }
+        // ORI
+        case 0x0D:
+            {
+                rt := instruction_get_rt(cpu.instr);
+                rs := instruction_get_rs(cpu.instr);
+                imm := instruction_get_imm(cpu.instr);
+
+                cpu.writeBack.register = rt;
+                cpu.writeBack.value = cpu.gpr[rs] | imm;
+            }
+        // XORI
+        case 0x0E:
+            {
+                rt := instruction_get_rt(cpu.instr);
+                rs := instruction_get_rs(cpu.instr);
+                imm := instruction_get_imm(cpu.instr);
+
+                cpu.writeBack.register = rt;
+                cpu.writeBack.value = cpu.gpr[rs] ~ imm;
+            }
+        // LUI
+        case 0x0F:
+            {
+                rt := instruction_get_rt(cpu.instr);
+                imm := instruction_get_imm(cpu.instr);
+
+                cpu.writeBack.register = rt;
+                cpu.writeBack.value = imm << 16;
+            }
     }
 }
 
@@ -215,13 +293,13 @@ cpu_fetch_decode :: proc(ps: ^PSXState, cpu: ^CPUState) -> i32
     if maskedPc < 0x1F00_0000
     {
         // Read instruction
-        cpu.instr = bus_load_ram(ps, maskedPc)
+        cpu.instr = bus_loadmem_ram(ps, maskedPc)
         return 1;
     }
     else
     {
         // Read bios
-        cpu.instr = bus_load_bios(ps, maskedPc);
+        cpu.instr = bus_loadmem_bios(ps, maskedPc);
         return 20;
     }
 }
